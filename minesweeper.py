@@ -257,13 +257,14 @@ class MinesweeperAI():
                 print(ac.BRIGHT_RED + f"    potential miner sentence: {sentence},  length: {len(get_cells)}" + ac.RESET)
                 for c in get_cells:
                     print(f"nearby: {self.get_nearby(c)}")
-                    if self.get_nearby(c) == 0:
+                    if len(self.get_nearby(c)) == 0:
                         print(ac.BRIGHT_RED + f"{c} is a mine" + ac.RESET)
                         to_mark = []
                         for c in get_cells:
                             to_mark.append(c)
                         for item in to_mark:
                             self.mark_mine(item)
+                        break
                     else:
                         print(ac.BRIGHT_RED + f"{c} is not a mine" + ac.RESET)
                     
@@ -273,24 +274,26 @@ class MinesweeperAI():
         print(f"known safe moves: {self.safes.difference(self.moves_made, self.mines)}")
         # print(f"moves_made: {self.moves_made}")
         print(ac.BRIGHT_GREEN + f"mines: {self.mines}\n" + ac.RESET)
-
+        
         # Check for subsets in pairs of sentences.
-        """ # Create list of sentences in knowledge.
-        sentence_list = [sentence for sentence in self.knowledge] 
-        # Get list of all permutations taken 2 at a time.
-        perms = list(itertools.combinations(sentence_list, 2))
-        for perm in perms:
-            cells1 = perm[0].get_cells()
-            count1 = perm[0].get_count()
-            cells2 = perm[1].get_cells()
-            count2 = perm[1].get_count()
-            # If subset, create new sentence.
-            if cells1 and cells2 and cells1 < cells2 and cells1.issubset(cells2):
-                print("cells1 is subset")
-                self.knowledge.append(Sentence(cells2.difference(cells1), count2 - count1))
-            if cells1 and cells2 and cells2 < cells1 and cells2.issubset(cells1):
-                print("cells2 is subset")
-                self.knowledge.append(Sentence(cells1.difference(cells2), count1 - count2)) """
+        if len(self.knowledge) > 1:
+            print("checking for subsets")
+            sentence_list = [s for s in self.knowledge]
+            combo_list = list(itertools.combinations(sentence_list, 2))
+            for combo in combo_list:
+                set0 = combo[0].get_cells()
+                count0 = combo[1].get_count()
+                set1 = combo[1].get_cells()
+                count1 = combo[1].get_count()
+                if set0 and set1:
+                    if set1 < set0:
+                        print(f"{set1} is subset of {set0}")
+                        print(f"{set0 - set1}, {count0 - count1}")
+                        self.knowledge.append(Sentence(set0 - set1, count0 - count1))
+                    if set0 < set1:
+                        print(f"{set0} is subset of {set1}")
+                        print(f"{set1 - set0}, {count1 - count0}")
+                        self.knowledge.append(Sentence(set1 - set0, count1 - count0))
 
         
 

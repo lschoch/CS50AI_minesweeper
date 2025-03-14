@@ -198,14 +198,74 @@ class MinesweeperAI():
                 # Ignore the cell itself
                 if (i, j) == cell:
                     continue
-                # Add cell if within boundaries and not already characterized
+                # Add cell if within boundaries and not safe or move made.
                 if (0 <= i < self.height and
                     0 <= j < self.width and
-                    (i, j) not in self.moves_made and
-                    (i, j) not in self.mines and
-                    (i, j) not in self.safes):
+                    (i, j) not in self.safes and 
+                    (i, j) not in self.moves_made
+                    ):
                     nearby.add((i, j))
         return nearby
+
+    def check_knowledge(self, knowledge):
+        # Check for new inferendes.
+        flag = True
+        while flag:
+            flag = False
+            print("printing sentences in knowledge:")
+            for sentence in knowledge:
+                print(sentence)
+            for sentence in knowledge:
+                get_cells = sentence.get_cells()
+                get_count = sentence.get_count()
+                if get_count == 0:
+                    print("count 0")
+                    for c in get_cells.copy():
+                        self.mark_safe(c)
+                    # Remove the sentence since all cells have been removed.
+                    knowledge.remove(sentence)
+                    self.check_knowledge(knowledge) 
+                    # flag = True
+
+                # Check for mines.
+                if len(get_cells) == get_count and get_count > 0:
+                    print(ac.BRIGHT_GREEN + "len = count" + ac.RESET)
+                    for c in get_cells.copy():
+                        self.mark_mine(c)
+                    # Remove the sentence since all cells have been removed.
+                    knowledge.remove(sentence)
+                    self.check_knowledge(knowledge)
+                    # flag = True
+
+            # Check for subsets in pairs of sentences.
+            if len(knowledge) > 1:
+                combo_list = list(itertools.combinations(knowledge, 2))
+                for combo in combo_list:
+                    set0 = combo[0].get_cells()
+                    count0 = combo[0].get_count()
+                    set1 = combo[1].get_cells()
+                    count1 = combo[1].get_count()
+                    if set0 and set1:
+                        print(ac.BRIGHT_YELLOW + f"set0: {set0}, set1: {set1}" + ac.RESET)
+                        if set1 < set0:
+                            print(ac.BRIGHT_RED + f"set1<set0: set0: {set0} set1: {set1}" + ac.RESET)
+                            knowledge.append(Sentence(set0 - set1, count0 - count1))
+                            if combo[0] in knowledge:
+                                knowledge.remove(combo[0])
+                            if combo[1] in knowledge:
+                                knowledge.remove(combo[1])
+                            self.check_knowledge(knowledge)
+                            # flag = True
+                        elif set0 < set1:
+                            print(ac.BRIGHT_RED + f"set0<set1: set0: {set0} set1: {set1}" + ac.RESET)
+                            knowledge.append(Sentence(set1 - set0, count1 - count0))
+                            if combo[0] in knowledge:
+                                knowledge.remove(combo[0])
+                            if combo[1] in knowledge:
+                                knowledge.remove(combo[1])
+                            self.check_knowledge(knowledge)    
+                            # flag = True
+            
 
     def add_knowledge(self, cell, count):
         """
@@ -222,80 +282,19 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
+        print(ac.BRIGHT_MAGENTA + f"move: {cell}, count: {count}" + ac.RESET)
         self.moves_made.add(cell)
         self.mark_safe(cell)
+        self.check_knowledge(self.knowledge)
         # Get cells for new sentence.
         sentence_cells = self.get_nearby(cell)
-        # Create new sentence.
-        self.knowledge.append(Sentence(sentence_cells, count))
 
-        # Check for new information.
-        print("Checking sentences:")
-        for sentence in self.knowledge:
-            print(f"  sentence: {sentence}")
-            get_cells = sentence.get_cells()
-            get_count = sentence.get_count()
-            # Remove sentences with no cells.
-            if len(get_cells) == 0:
-                print(ac.BRIGHT_MAGENTA + "  removing sentence with no cells" + ac.RESET)
-                self.knowledge.remove(sentence)
-                continue
-            if get_count == 0:
-                print(f"    count is 0, sentence: {get_cells}, {get_count}")
-                to_mark = []
-                for c in get_cells:
-                    to_mark.append(c)
-                for item in to_mark:
-                    self.mark_safe(item)
-                # Remove sentence if it has no cells.
-                if len(get_cells) == 0:
-                    print("    removing sentence with no cells.")
-                    self.knowledge.remove(sentence)
-                    continue
-            # Check for mines.
-            if len(get_cells) == get_count:
-                print(ac.BRIGHT_RED + f"    potential miner sentence: {sentence},  length: {len(get_cells)}" + ac.RESET)
-                for c in get_cells:
-                    print(f"nearby: {self.get_nearby(c)}")
-                    if len(self.get_nearby(c)) == 0:
-                        print(ac.BRIGHT_RED + f"{c} is a mine" + ac.RESET)
-                        to_mark = []
-                        for c in get_cells:
-                            to_mark.append(c)
-                        for item in to_mark:
-                            self.mark_mine(item)
-                        break
-                    else:
-                        print(ac.BRIGHT_RED + f"{c} is not a mine" + ac.RESET)
-                    
-        print(f"move: {cell}")
-        print(f"count: {count}")
-        # print(f"sentence_cells: {sentence_cells}")
-        print(f"known safe moves: {self.safes.difference(self.moves_made, self.mines)}")
-        # print(f"moves_made: {self.moves_made}")
-        print(ac.BRIGHT_GREEN + f"mines: {self.mines}\n" + ac.RESET)
-        
-        # Check for subsets in pairs of sentences.
-        if len(self.knowledge) > 1:
-            print("checking for subsets")
-            sentence_list = [s for s in self.knowledge]
-            combo_list = list(itertools.combinations(sentence_list, 2))
-            for combo in combo_list:
-                set0 = combo[0].get_cells()
-                count0 = combo[1].get_count()
-                set1 = combo[1].get_cells()
-                count1 = combo[1].get_count()
-                if set0 and set1:
-                    if set1 < set0:
-                        print(f"{set1} is subset of {set0}")
-                        print(f"{set0 - set1}, {count0 - count1}")
-                        self.knowledge.append(Sentence(set0 - set1, count0 - count1))
-                    if set0 < set1:
-                        print(f"{set0} is subset of {set1}")
-                        print(f"{set1 - set0}, {count1 - count0}")
-                        self.knowledge.append(Sentence(set1 - set0, count1 - count0))
-
-        
+        # If there are cells in sentence_cells, create new sentence.
+        if sentence_cells:
+            self.knowledge.append(Sentence(sentence_cells, count))
+        # Check for inferences.
+        self.check_knowledge(self.knowledge)
+        print(ac.BRIGHT_MAGENTA + f"miners: {self.mines}\n" + ac.RESET)
 
     def make_safe_move(self):
         """

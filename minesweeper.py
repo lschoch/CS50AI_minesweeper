@@ -95,8 +95,6 @@ class Sentence():
     def __init__(self, cells, count):
         self.cells = set(cells)
         self.count = count
-        self.mines = set()
-        self.safes = set()
 
     def __eq__(self, other):
         return self.cells == other.cells and self.count == other.count
@@ -104,12 +102,6 @@ class Sentence():
     def __str__(self):
         return f"{self.cells} = {self.count}"
     
-    def get_cells(self):
-        return self.cells
-    
-    def get_count(self):
-        return self.count
-
     def known_mines(self):
         """
         Returns the set of all cells in self.cells known to be mines.
@@ -118,7 +110,11 @@ class Sentence():
             return self.cells
         else:
             return set() """
-        return self.mines
+        
+        if len(self.cells) == self.count:
+            return self.cells
+        else:
+            return set()
 
     def known_safes(self):
         """
@@ -128,7 +124,10 @@ class Sentence():
             return self.cells
         else:
             return set() """
-        return self.safes
+        if self.count == 0:
+            return self.cells
+        else:
+            return set()
 
 
     def mark_mine(self, cell):
@@ -139,7 +138,6 @@ class Sentence():
         if cell in self.cells:
             self.cells.remove(cell)
             self.count -= 1
-            self.mines.add(cell)
 
     def mark_safe(self, cell):
         """
@@ -148,7 +146,6 @@ class Sentence():
         """
         if cell in self.cells:
             self.cells.remove(cell)
-            self.safes.add(cell)
 
 
 class MinesweeperAI():
@@ -168,6 +165,7 @@ class MinesweeperAI():
         # Keep track of cells known to be safe or mines
         self.mines = set()
         self.safes = set()
+        self.ones = set()
 
         # List of sentences about the game known to be true
         self.knowledge = []
@@ -180,6 +178,7 @@ class MinesweeperAI():
         self.mines.add(cell)
         for sentence in self.knowledge:
             sentence.mark_mine(cell)
+        self.check_knowledge(self.knowledge)
 
     def mark_safe(self, cell):
         """
@@ -189,6 +188,7 @@ class MinesweeperAI():
         self.safes.add(cell)
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
+        self.check_knowledge(self.knowledge)
 
     def get_nearby(self, cell):
         nearby = set()
@@ -202,38 +202,57 @@ class MinesweeperAI():
                 if (0 <= i < self.height and
                     0 <= j < self.width and
                     (i, j) not in self.safes and 
-                    (i, j) not in self.moves_made
+                    (i, j) not in self.moves_made #TODO - ? ignore known mines here as well.
                     ):
                     nearby.add((i, j))
         return nearby
+
+    def check_ones(self, cell):
+        # Check cells adjacent to the mine.
+        # print(f"checking mine at {cell}")
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                # Ignore the cell itself
+                if (i, j) == cell:
+                    continue
+                # Check cells within boundaries and count = one.
+                if (0 <= i < self.height and
+                    0 <= j < self.width and
+                    (i, j) in self.ones
+                ):
+                    # print(f"found a one cell: {(i, j)}")
+                    # print(f"nearby cells: {self.get_nearby((i, j))}")
+                    # Mark as safe all unidentified neighbors of cells with one count.
+                    for nb in self.get_nearby((i, j)):
+                        # print(f"checking {nb}")
+                        if nb not in self.mines:
+                            # print(f"safe_marking {nb}, a one-cell neighbor")
+                            self.mark_safe(nb)
 
     def check_knowledge(self, knowledge):
         # Check for new inferendes.
         flag = True
         while flag:
             flag = False
-            print("printing sentences in knowledge:")
             for sentence in knowledge:
                 print(sentence)
             for sentence in knowledge:
-                get_cells = sentence.get_cells()
-                get_count = sentence.get_count()
-                if get_count == 0:
-                    print("count 0")
-                    for c in get_cells.copy():
-                        self.mark_safe(c)
-                    # Remove the sentence since all cells have been removed.
+                # Remove sentences with no cells.
+                if len(sentence.cells) == 0:
                     knowledge.remove(sentence)
+                # Check for safes.
+                if sentence.known_safes():
+                    for c in sentence.cells.copy():
+                        self.mark_safe(c)
                     self.check_knowledge(knowledge) 
                     # flag = True
 
                 # Check for mines.
-                if len(get_cells) == get_count and get_count > 0:
-                    print(ac.BRIGHT_GREEN + "len = count" + ac.RESET)
-                    for c in get_cells.copy():
+                if sentence.known_mines():
+                    print(ac.BRIGHT_GREEN + f"mine(s) found: {sentence.cells}" + ac.RESET)
+                    for c in sentence.cells.copy():
                         self.mark_mine(c)
-                    # Remove the sentence since all cells have been removed.
-                    knowledge.remove(sentence)
+                        self.check_ones(c)
                     self.check_knowledge(knowledge)
                     # flag = True
 
@@ -241,12 +260,12 @@ class MinesweeperAI():
             if len(knowledge) > 1:
                 combo_list = list(itertools.combinations(knowledge, 2))
                 for combo in combo_list:
-                    set0 = combo[0].get_cells()
-                    count0 = combo[0].get_count()
-                    set1 = combo[1].get_cells()
-                    count1 = combo[1].get_count()
+                    set0 = combo[0].cells
+                    count0 = combo[0].count
+                    set1 = combo[1].cells
+                    count1 = combo[1].count
                     if set0 and set1:
-                        print(ac.BRIGHT_YELLOW + f"set0: {set0}, set1: {set1}" + ac.RESET)
+                        # print(ac.BRIGHT_YELLOW + f"set0: {set0}, set1: {set1}" + ac.RESET)
                         if set1 < set0:
                             print(ac.BRIGHT_RED + f"set1<set0: set0: {set0} set1: {set1}" + ac.RESET)
                             knowledge.append(Sentence(set0 - set1, count0 - count1))
@@ -285,6 +304,8 @@ class MinesweeperAI():
         print(ac.BRIGHT_MAGENTA + f"move: {cell}, count: {count}" + ac.RESET)
         self.moves_made.add(cell)
         self.mark_safe(cell)
+        if count == 1:
+            self.ones.add(cell)
         self.check_knowledge(self.knowledge)
         # Get cells for new sentence.
         sentence_cells = self.get_nearby(cell)
@@ -294,6 +315,7 @@ class MinesweeperAI():
             self.knowledge.append(Sentence(sentence_cells, count))
         # Check for inferences.
         self.check_knowledge(self.knowledge)
+        print(f"safes: {self.safes}")
         print(ac.BRIGHT_MAGENTA + f"miners: {self.mines}\n" + ac.RESET)
 
     def make_safe_move(self):
@@ -305,7 +327,7 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-        # Use a safe cell, if available and not previously used for a moves.
+        # Use a safe cell, if available and not previously used for a move.
         if self.safes:
             for c in self.safes:
                 if c not in self.moves_made:
@@ -325,6 +347,7 @@ class MinesweeperAI():
             for j in range(self.width):
                 if  (i, j) not in self.moves_made and (i, j) not in self.mines:
                     choices.append((i, j))
+        # Randomly choose one of the cells.
         if len(choices) > 0:
             return random.choice(choices)
         else:

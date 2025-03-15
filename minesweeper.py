@@ -106,11 +106,6 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-        """ if len(self.cells) == len(self.mines):
-            return self.cells
-        else:
-            return set() """
-        
         if len(self.cells) == self.count:
             return self.cells
         else:
@@ -120,10 +115,6 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-        """ if len(self.cells) == len(self.safes):
-            return self.cells
-        else:
-            return set() """
         if self.count == 0:
             return self.cells
         else:
@@ -202,56 +193,50 @@ class MinesweeperAI():
                 if (0 <= i < self.height and
                     0 <= j < self.width and
                     (i, j) not in self.safes and 
-                    (i, j) not in self.moves_made
+                    (i, j) not in self.moves_made and
+                    (i, j) not in self.mines
                     ):
                     nearby.add((i, j))
         return nearby
 
     def check_ones(self, cell):
         # Check cells adjacent to the mine.
-        # print(f"checking mine at {cell}")
         for i in range(cell[0] - 1, cell[0] + 2):
             for j in range(cell[1] - 1, cell[1] + 2):
                 # Ignore the cell itself
                 if (i, j) == cell:
                     continue
-                # Check cells within boundaries and count = one.
+                # Check cells within boundaries and count = 1.
                 if (0 <= i < self.height and
                     0 <= j < self.width and
                     (i, j) in self.ones
                 ):
-                    # print(f"found a one cell: {(i, j)}")
-                    # print(f"nearby cells: {self.get_nearby((i, j))}")
                     # Mark as safe all unidentified neighbors of cells with one count.
                     for nb in self.get_nearby((i, j)):
-                        # print(f"checking {nb}")
-                        if nb not in self.mines:
-                            # print(f"safe_marking {nb}, a one-cell neighbor")
+                        if nb != (i, j):
                             self.mark_safe(nb)
 
     def check_knowledge(self, knowledge):
-        # Check for new inferendes.
-        for sentence in knowledge:
-            print(sentence)
+        # Check for new knowledge.
+        """ for sentence in knowledge:
+            print(sentence) """
         for sentence in knowledge:
             # Remove sentences with no cells.
             if len(sentence.cells) == 0:
                 knowledge.remove(sentence)
-            # Check for safes.
+            # Check for known safes.
             if sentence.known_safes():
                 for c in sentence.cells.copy():
                     self.mark_safe(c)
-                self.check_knowledge(knowledge) 
-                # flag = True
-
-            # Check for mines.
+                    self.check_knowledge(knowledge) 
+            # Check for known mines.
             if sentence.known_mines():
                 print(ac.BRIGHT_GREEN + f"mine(s) found: {sentence.cells}" + ac.RESET)
                 for c in sentence.cells.copy():
                     self.mark_mine(c)
+                    self.check_knowledge(knowledge)
                     self.check_ones(c)
-                self.check_knowledge(knowledge)
-                # flag = True
+                    self.check_knowledge(knowledge)
 
         # Check for subsets in pairs of sentences.
         if len(knowledge) > 1:
@@ -270,7 +255,7 @@ class MinesweeperAI():
                             knowledge.remove(combo[0])
                         if combo[1] in knowledge:
                             knowledge.remove(combo[1])
-                        self.check_knowledge(knowledge)
+                        self.check_knowledge(knowledge) 
                     elif set0 < set1:
                         print(ac.BRIGHT_RED + f"set0<set1: set0: {set0} set1: {set1}" + ac.RESET)
                         knowledge.append(Sentence(set1 - set0, count1 - count0))
@@ -299,21 +284,28 @@ class MinesweeperAI():
         print(ac.BRIGHT_MAGENTA + f"move: {cell}, count: {count}" + ac.RESET)
         self.moves_made.add(cell)
         self.mark_safe(cell)
+
         if count == 1:
             self.ones.add(cell)
-        self.check_knowledge(self.knowledge)
-        # Get cells for new sentence.
-        # sentence_cells = self.get_nearby(cell)
-        sentence_cells = set()
-        for nb in self.get_nearby(cell):
-            if nb not in self.mines:
-                sentence_cells.add(nb)
 
-        # If there are cells in sentence_cells, create new sentence.
-        if sentence_cells:
-            self.knowledge.append(Sentence(sentence_cells, count))
+        # Count mines in neighbors of cell.
+        mine_count = 0
+        for i in range(cell[0] - 1, cell[0] + 2):
+            for j in range(cell[1] - 1, cell[1] + 2):
+                # Ignore the cell itself
+                if (i, j) == cell:
+                    continue
+                # Count mines within boundaries.
+                if (0 <= i < self.height and
+                    0 <= j < self.width and
+                    (i, j) in self.mines):
+                    mine_count +=1
+        # Create new sentence.
+        if self.get_nearby(cell):
+            self.knowledge.append(Sentence(self.get_nearby(cell), count - mine_count))
             self.check_knowledge(self.knowledge)
-        print(f"safes: {self.safes}")
+
+        print(ac.BRIGHT_CYAN + f"safes: {self.safes}" + ac.RESET)
         print(ac.BRIGHT_MAGENTA + f"miners: {self.mines}\n" + ac.RESET)
 
     def make_safe_move(self):

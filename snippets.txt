@@ -1,0 +1,27 @@
+check50 ai50/projects/2024/x/minesweeper
+submit50 ai50/projects/2024/x/minesweeper
+
+Expected test results:
+
+After move:(1, 1) with nearby_count:0
+NO Sentences in Knowledge Base.
+Safe Cells: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
+Mine Cells: []
+
+After move:(2, 2) with nearby_count:2
+Sentences in Knowledge Base:
+S#0: [(3, 2), (1, 3), (2, 3), (3, 3), (3, 1)] = 2
+Safe Cells: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
+Mine Cells: []
+
+After move:(3, 3) with nearby_count:0
+NO Sentences in Knowledge Base.
+Safe Cells: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (3, 2), (3, 3), (3, 4), (4, 2), (4, 3), (4, 4)]
+Mine Cells: [(1, 3), (3, 1)]
+
+After move:(5, 2) with nearby_count:1
+Sentences in Knowledge Base:
+S#0: [(7, 3), (7, 1)] = 1
+S#1: [(6, 3), (6, 1), (6, 2)] = 1
+Safe Cells: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), (2, 3), (2, 4), (3, 2), (3, 3), (3, 4), (4, 1), (4, 2), (4, 3), (4, 4), (5, 1), (5, 2), (5, 3), (7, 2)]
+Mine Cells: [(1, 3), (3, 1)]

@@ -218,8 +218,6 @@ class MinesweeperAI():
 
     def check_knowledge(self, knowledge):
         # Check for new knowledge.
-        """ for sentence in knowledge:
-            print(sentence) """
         for sentence in knowledge:
             # Remove sentences with no cells.
             if len(sentence.cells) == 0:
@@ -237,7 +235,7 @@ class MinesweeperAI():
                     self.check_knowledge(knowledge)
                     self.check_ones(c)
                     self.check_knowledge(knowledge)
-
+            
         # Check for subsets in pairs of sentences.
         if len(knowledge) > 1:
             combo_list = list(itertools.combinations(knowledge, 2))
@@ -253,14 +251,14 @@ class MinesweeperAI():
                         knowledge.append(Sentence(set0 - set1, count0 - count1))
                         if combo[0] in knowledge:
                             knowledge.remove(combo[0])
-                        if combo[1] in knowledge:
-                            knowledge.remove(combo[1])
+                        """ if combo[1] in knowledge:
+                            knowledge.remove(combo[1]) """
                         self.check_knowledge(knowledge) 
                     elif set0 < set1:
                         print(ac.BRIGHT_RED + f"set0<set1: set0: {set0} set1: {set1}" + ac.RESET)
                         knowledge.append(Sentence(set1 - set0, count1 - count0))
-                        if combo[0] in knowledge:
-                            knowledge.remove(combo[0])
+                        """ if combo[0] in knowledge:
+                            knowledge.remove(combo[0]) """
                         if combo[1] in knowledge:
                             knowledge.remove(combo[1])
                         self.check_knowledge(knowledge)    
@@ -305,8 +303,11 @@ class MinesweeperAI():
             self.knowledge.append(Sentence(self.get_nearby(cell), count - mine_count))
             self.check_knowledge(self.knowledge)
 
+        """ print("Sentences in Knowledge Base:")
+        for sentence in self.knowledge:
+            print(sentence)
         print(ac.BRIGHT_CYAN + f"safes: {self.safes}" + ac.RESET)
-        print(ac.BRIGHT_MAGENTA + f"miners: {self.mines}\n" + ac.RESET)
+        print(ac.BRIGHT_MAGENTA + f"miners: {self.mines}\n" + ac.RESET) """
 
     def make_safe_move(self):
         """
